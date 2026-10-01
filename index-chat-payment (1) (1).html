@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyFlow - จองเที่ยวบินผ่านแชท</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Sarabun', sans-serif; }
+  .qr { display:grid; grid-template-columns:repeat(21,1fr); width:168px; height:168px; }
+  .qr i { display:block; }
+  .msg-in { animation: pop .2s ease-out; }
+  @keyframes pop { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:none;} }
+</style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen">
+
+<header class="bg-white border-b border-slate-100 py-3 px-6 flex justify-between items-center shadow-sm">
+  <div class="flex items-center space-x-3">
+    <div class="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white text-xl shadow-md shadow-sky-200">✈️</div>
+    <div>
+      <h1 class="text-xl font-black text-slate-900 tracking-tight">SkyFlow</h1>
+      <p class="text-xs text-slate-400">ค้นหาเที่ยวบิน จองง่าย จ่ายสะดวก</p>
+    </div>
+  </div>
+  <div class="flex items-center space-x-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-semibold">
+    <span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>แชทออนไลน์</span>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto p-4 md:p-6 space-y-5">
+
+  <!-- Stepper -->
+  <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm grid grid-cols-5 gap-2 text-center text-[11px] md:text-xs font-bold">
+    <div id="s1" class="p-2.5 rounded-xl">1. พิมพ์ความต้องการ</div>
+    <div id="s2" class="p-2.5 rounded-xl">2. เลือกเที่ยวบิน</div>
+    <div id="s3" class="p-2.5 rounded-xl">3. ยืนยันการจอง</div>
+    <div id="s4" class="p-2.5 rounded-xl">4. ชำระเงิน</div>
+    <div id="s5" class="p-2.5 rounded-xl">5. เสร็จสิ้น</div>
+  </div>
+
+  <!-- CHAT VIEW -->
+  <section id="chat-view" class="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-5 py-3 border-b border-slate-100 flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-full bg-sky-100 flex items-center justify-center">💬</div>
+      <div>
+        <h2 class="font-bold text-slate-900 text-sm">แชทจองเที่ยวบิน SkyFlow</h2>
+        <p class="text-[11px] text-slate-400">พิมพ์จุดหมาย เดือน งบประมาณ และเงื่อนไขอื่น ๆ ได้เลย</p>
+      </div>
+    </div>
+
+    <div id="chat-log" class="p-4 md:p-5 space-y-3 h-[28rem] overflow-y-auto bg-slate-50/60"></div>
+
+    <div class="px-4 pt-3 flex flex-wrap items-center gap-2 text-xs">
+      <span class="text-slate-500 font-bold">✈️ จุดหมาย:</span>
+      <input id="dest" list="airport-list" autocomplete="off" placeholder="พิมพ์ชื่อเมือง/สนามบิน/รหัส เช่น หาดใหญ่ หรือ HDY" class="border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-sky-500 bg-slate-50 w-64">
+      <span id="dest-code" class="px-3 py-1.5 rounded-lg font-mono font-bold bg-slate-100 text-slate-400">---</span>
+      <datalist id="airport-list"></datalist>
+    </div>
+    <div class="px-4 pt-3 flex flex-wrap gap-2 text-xs">
+      <button class="chip bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600">สิงคโปร์ เช้า รวมกระเป๋า งบ 8000</button>
+      <button class="chip bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600">ภูเก็ต สุดสัปดาห์ งบ 2500</button>
+      <button class="chip bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600">โซล บินตรง</button>
+      <button class="chip bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600">ไปโตเกียว ธันวา บินตรง รวมกระเป๋า 20kg งบ 18,000</button>
+    </div>
+    <div class="p-4 flex items-end gap-2">
+      <input type="date" id="dep-date" title="วันเดินทาง" class="border border-slate-200 rounded-2xl px-3 py-3 text-sm outline-none focus:border-sky-500 bg-slate-50">
+      <textarea id="chat-input" rows="1" class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none resize-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100" placeholder="พิมพ์ข้อความ เช่น ไปโตเกียว ธันวา งบ 18,000"></textarea>
+      <button id="send-btn" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl text-sm transition shadow-md shadow-sky-200">ส่ง ➤</button>
+    </div>
+  </section>
+
+  <!-- PAYMENT VIEW -->
+  <section id="pay-view" class="hidden grid grid-cols-1 md:grid-cols-5 gap-5">
+    <div class="md:col-span-3 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-900">💳 ชำระเงิน</h2>
+        <button id="back-btn" class="text-xs text-slate-500 hover:text-slate-800">← กลับไปแชท</button>
+      </div>
+
+      <div class="space-y-2">
+        <p class="text-xs font-bold text-slate-500">ข้อมูลติดต่อผู้จอง</p>
+        <input id="p-name" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" placeholder="ชื่อ-นามสกุล (ตามบัตรประชาชน/พาสปอร์ต)">
+        <div class="grid grid-cols-2 gap-2">
+          <input id="p-email" type="email" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" placeholder="อีเมล">
+          <input id="p-phone" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" placeholder="เบอร์โทรศัพท์">
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <p class="text-xs font-bold text-slate-500">เลือกวิธีชำระเงิน</p>
+        <div class="grid grid-cols-3 gap-2 text-xs font-bold">
+          <button data-m="card" class="method p-3 rounded-xl border-2">💳<br>บัตรเครดิต/เดบิต</button>
+          <button data-m="qr" class="method p-3 rounded-xl border-2">📱<br>พร้อมเพย์ QR</button>
+          <button data-m="bank" class="method p-3 rounded-xl border-2">🏦<br>โมบายแบงก์กิ้ง</button>
+        </div>
+      </div>
+
+      <div id="m-card" class="method-panel space-y-2">
+        <input id="c-num" inputmode="numeric" maxlength="19" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500 font-mono" placeholder="หมายเลขบัตร 0000 0000 0000 0000">
+        <input id="c-holder" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" placeholder="ชื่อบนบัตร">
+        <div class="grid grid-cols-2 gap-2">
+          <input id="c-exp" maxlength="5" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500 font-mono" placeholder="MM/YY">
+          <input id="c-cvv" type="password" inputmode="numeric" maxlength="4" class="border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500 font-mono" placeholder="CVV">
+        </div>
+      </div>
+
+      <div id="m-qr" class="method-panel hidden text-center space-y-2">
+        <div class="inline-block p-3 border border-slate-200 rounded-2xl bg-white"><div id="qr" class="qr"></div></div>
+        <p class="text-xs text-slate-500">สแกนด้วยแอปธนาคารเพื่อชำระเงิน (QR ตัวอย่างสำหรับสาธิต)</p>
+        <p class="text-sm font-bold text-slate-800">ยอดชำระ ฿<span class="pay-total"></span></p>
+      </div>
+
+      <div id="m-bank" class="method-panel hidden space-y-2">
+        <select id="b-bank" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500 bg-white">
+          <option value="">เลือกธนาคาร</option>
+          <option>ธนาคารกสิกรไทย (K PLUS)</option>
+          <option>ธนาคารไทยพาณิชย์ (SCB Easy)</option>
+          <option>ธนาคารกรุงเทพ (Bualuang mBanking)</option>
+          <option>ธนาคารกรุงไทย (Krungthai NEXT)</option>
+          <option>ธนาคารกรุงศรี (KMA)</option>
+        </select>
+        <p class="text-xs text-slate-500">ระบบจะนำคุณไปยังแอปธนาคารเพื่อยืนยันการชำระเงิน</p>
+      </div>
+
+      <p id="pay-error" class="hidden text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></p>
+
+      <button id="pay-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-md">
+        ชำระเงิน ฿<span class="pay-total"></span>
+      </button>
+      <p class="text-[11px] text-slate-400 text-center">🔒 หน้าสาธิตเพื่อการเรียน ไม่มีการเก็บหรือส่งข้อมูลบัตรจริง</p>
+    </div>
+
+    <aside class="md:col-span-2 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm h-fit space-y-3">
+      <h3 class="font-bold text-slate-900">สรุปการจอง</h3>
+      <div id="order-summary" class="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600 space-y-2"></div>
+    </aside>
+  </section>
+
+  <!-- SUCCESS VIEW -->
+  <section id="done-view" class="hidden space-y-5">
+    <div class="bg-[#00965e] text-white rounded-[2rem] p-8 text-center shadow-md space-y-3">
+      <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-2xl">🎉</div>
+      <h2 class="text-2xl font-extrabold">ชำระเงินสำเร็จ จองเสร็จสมบูรณ์!</h2>
+      <p class="text-sm text-emerald-100">เราได้ส่งอีเมลยืนยันการจองไปที่ <span id="done-email" class="font-semibold"></span></p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-3 max-w-xl mx-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <span class="text-xs text-slate-400">รหัสการจอง</span>
+        <span id="done-ref" class="font-mono font-black text-lg text-sky-600"></span>
+      </div>
+      <div id="done-summary" class="text-xs text-slate-600 space-y-2"></div>
+    </div>
+    <div class="text-center">
+      <button id="home-btn" class="bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-xs px-8 py-3.5 rounded-full transition shadow-lg active:scale-95">กลับหน้าหลัก / จองเที่ยวบินใหม่</button>
+    </div>
+  </section>
+</main>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+  <div class="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl space-y-4">
+    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+      <h3 class="font-bold text-lg text-slate-900">ยืนยันการจอง</h3>
+      <button id="modal-close" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+    </div>
+    <div id="confirm-summary" class="bg-slate-50 p-4 rounded-2xl text-xs space-y-2 text-slate-600"></div>
+    <button id="to-pay" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">ไปหน้าชำระเงิน ➔</button>
+  </div>
+</div>
+
+<script>
+/* ---------- Config ---------- */
+const ORIGIN = 'BKK';
+// [รหัส IATA, ชื่อไทย (คั่นด้วย |), ชื่ออังกฤษ]
+const AIRPORT_LIST = [
+  ['CNX','เชียงใหม่','Chiang Mai'], ['HKT','ภูเก็ต','Phuket'], ['KBV','กระบี่','Krabi'], ['HDY','หาดใหญ่|สงขลา','Hat Yai'],
+  ['CEI','เชียงราย','Chiang Rai'], ['KKC','ขอนแก่น','Khon Kaen'], ['UTH','อุดรธานี|อุดร','Udon Thani'], ['USM','เกาะสมุย|สมุย','Samui'],
+  ['URT','สุราษฎร์ธานี|สุราษฎร์','Surat Thani'], ['NST','นครศรีธรรมราช|นครศรี','Nakhon Si Thammarat'], ['UBP','อุบลราชธานี|อุบล','Ubon Ratchathani'],
+  ['TST','ตรัง','Trang'], ['PHS','พิษณุโลก','Phitsanulok'], ['LPT','ลำปาง','Lampang'], ['TDX','ตราด','Trat'], ['UTP','พัทยา|ระยอง|อู่ตะเภา','U-Tapao'],
+  ['DMK','ดอนเมือง','Don Mueang'],
+  ['NRT','โตเกียว|ญี่ปุ่น|นาริตะ','Tokyo'], ['HND','ฮาเนดะ','Haneda'], ['KIX','โอซาก้า|โอซากา','Osaka'], ['FUK','ฟุกุโอกะ','Fukuoka'],
+  ['CTS','ซัปโปโร|ฮอกไกโด','Sapporo'], ['NGO','นาโกย่า','Nagoya'], ['ICN','โซล|เกาหลี|อินชอน','Seoul'], ['PUS','ปูซาน','Busan'],
+  ['SIN','สิงคโปร์','Singapore'], ['KUL','กัวลาลัมเปอร์','Kuala Lumpur'], ['HKG','ฮ่องกง','Hong Kong'], ['TPE','ไทเป|ไต้หวัน','Taipei'],
+  ['PEK','ปักกิ่ง','Beijing'], ['PVG','เซี่ยงไฮ้','Shanghai'], ['CAN','กว่างโจว','Guangzhou'], ['SGN','โฮจิมินห์|ไซง่อน|เวียดนาม','Ho Chi Minh'],
+  ['HAN','ฮานอย','Hanoi'], ['DAD','ดานัง','Da Nang'], ['REP','เสียมเรียบ','Siem Reap'], ['PNH','พนมเปญ','Phnom Penh'], ['RGN','ย่างกุ้ง','Yangon'],
+  ['DPS','บาหลี','Bali'], ['CGK','จาการ์ตา','Jakarta'], ['MNL','มะนิลา','Manila'], ['DEL','เดลี','Delhi'], ['BOM','มุมไบ','Mumbai'],
+  ['DXB','ดูไบ','Dubai'], ['MLE','มัลดีฟส์|มัลดีฟ','Maldives'], ['IST','อิสตันบูล','Istanbul'], ['LHR','ลอนดอน','London'], ['CDG','ปารีส','Paris'],
+  ['FRA','แฟรงก์เฟิร์ต','Frankfurt'], ['SYD','ซิดนีย์','Sydney'], ['MEL','เมลเบิร์น','Melbourne'], ['LAX','ลอสแอนเจลิส','Los Angeles'], ['JFK','นิวยอร์ก','New York'],
+  ['ZRH','ซูริก|ซูริค|สวิตเซอร์แลนด์','Zurich'], ['AMS','อัมสเตอร์ดัม','Amsterdam'], ['FCO','โรม|อิตาลี','Rome'], ['MAD','มาดริด','Madrid'],
+  ['BCN','บาร์เซโลนา','Barcelona'], ['MUC','มิวนิก','Munich'], ['VIE','เวียนนา','Vienna'], ['CPH','โคเปนเฮเกน','Copenhagen'],
+  ['ARN','สตอกโฮล์ม','Stockholm'], ['OSL','ออสโล','Oslo'], ['HEL','เฮลซิงกิ','Helsinki'], ['DOH','โดฮา','Doha'], ['AUH','อาบูดาบี','Abu Dhabi'],
+  ['SFO','ซานฟรานซิสโก','San Francisco'], ['SEA','ซีแอตเทิล','Seattle'], ['ORD','ชิคาโก','Chicago'], ['YYZ','โตรอนโต','Toronto'],
+  ['YVR','แวนคูเวอร์','Vancouver'], ['AKL','โอ๊คแลนด์|นิวซีแลนด์','Auckland'], ['PER','เพิร์ธ','Perth'], ['CMB','โคลัมโบ|ศรีลังกา','Colombo'],
+  ['KTM','กาฐมาณฑุ|เนปาล','Kathmandu'], ['DAC','ธากา','Dhaka'], ['BWN','บรูไน','Brunei'], ['BKI','โกตากินาบาลู','Kota Kinabalu'],
+  ['PEN','ปีนัง','Penang'], ['LPQ','หลวงพระบาง','Luang Prabang'], ['VTE','เวียงจันทน์','Vientiane'], ['MDL','มัณฑะเลย์','Mandalay'],
+  ['KMG','คุนหมิง','Kunming'], ['CTU','เฉิงตู','Chengdu'], ['MFM','มาเก๊า','Macau'], ['OKA','โอกินาวา|นาฮะ','Okinawa'], ['CGO','เจิ้งโจว','Zhengzhou'],
+  ['URC','อุรุมชี|ซินเจียง','Urumqi'], ['XIY','ซีอาน','Xian'], ['CKG','ฉงชิ่ง','Chongqing'], ['HGH','หางโจว','Hangzhou'], ['NKG','หนานจิง','Nanjing'],
+  ['SZX','เซินเจิ้น','Shenzhen'], ['XMN','เซี่ยเหมิน','Xiamen'], ['WUH','อู่ฮั่น','Wuhan'], ['CSX','ฉางซา','Changsha'], ['TAO','ชิงเต่า','Qingdao'],
+  ['DLC','ต้าเหลียน','Dalian'], ['SHE','เสิ่นหยาง','Shenyang'], ['HRB','ฮาร์บิน','Harbin'], ['TSN','เทียนจิน','Tianjin'], ['KWL','กุ้ยหลิน','Guilin'],
+  ['LJG','ลี่เจียง','Lijiang'], ['JHG','สิบสองปันนา','Xishuangbanna'], ['LXA','ลาซา|ทิเบต','Lhasa'], ['HAK','ไห่โข่ว','Haikou'], ['SYX','ซานย่า|ไหหลำ','Sanya'],
+  ['NNG','หนานหนิง','Nanning'], ['PKX','ปักกิ่งต้าซิง','Daxing'],
+  ['ITM','อิตามิ','Itami'], ['HIJ','ฮิโรชิม่า','Hiroshima'], ['SDJ','เซนได','Sendai'], ['KMJ','คุมาโมโตะ','Kumamoto'], ['KOJ','คาโกชิม่า','Kagoshima'],
+  ['MYJ','มัตสึยามะ','Matsuyama'], ['TAK','ทาคามัตสึ','Takamatsu'], ['KMQ','โคมัตสึ','Komatsu'], ['AOJ','อาโอโมริ','Aomori'], ['NGS','นางาซากิ','Nagasaki'],
+  ['OIT','โออิตะ','Oita'], ['HKD','ฮาโกดาเตะ','Hakodate'], ['KIJ','นีงาตะ','Niigata'], ['UKB','โกเบ','Kobe'], ['TOY','โทยามะ','Toyama'],
+  ['CJU','เชจู','Jeju'], ['GMP','กิมโป','Gimpo'], ['TAE','แทกู','Daegu'],
+  ['KCH','กูชิง','Kuching'], ['JHB','ยะโฮร์บาห์รู','Johor Bahru'], ['LGK','ลังกาวี','Langkawi'], ['SUB','สุราบายา','Surabaya'], ['JOG','ยอกยาการ์ตา','Yogyakarta'],
+  ['LOP','ลอมบอก','Lombok'], ['CEB','เซบู','Cebu'], ['CRK','คลาร์ก','Clark'], ['DVO','ดาเวา','Davao'], ['KLO','โบราเคย์|คาลิโบ','Kalibo'],
+  ['PPS','ปูเอร์โตปรินเซซา|ปาลาวัน','Puerto Princesa'], ['HPH','ไฮฟอง','Haiphong'], ['CXR','นาตรัง|กามรานห์','Cam Ranh'], ['PQC','ฟู้โกว๊ก','Phu Quoc'],
+  ['HUI','เว้','Hue'], ['VCA','เกิ่นเทอ','Can Tho'], ['DLI','ดาลัด','Da Lat'],
+  ['BLR','บังกาลอร์|เบงกาลูรู','Bangalore'], ['MAA','เจนไน|เจนไนย์','Chennai'], ['CCU','โกลกาตา|กัลกัตตา','Kolkata'], ['HYD','ไฮเดอราบาด','Hyderabad'],
+  ['AMD','อาห์เมดาบาด','Ahmedabad'], ['GOI','กัว','Goa'], ['COK','โคชิ','Kochi'], ['JAI','ชัยปุระ','Jaipur'], ['LHE','ลาฮอร์','Lahore'],
+  ['KHI','การาจี','Karachi'], ['ISB','อิสลามาบัด','Islamabad'], ['PBH','ภูฏาน|พาโร','Paro'],
+  ['RUH','ริยาด','Riyadh'], ['JED','เจดดาห์','Jeddah'], ['MED','เมดินา','Medina'], ['KWI','คูเวต','Kuwait'], ['BAH','บาห์เรน','Bahrain'],
+  ['MCT','มัสกัต|โอมาน','Muscat'], ['AMM','อัมมาน|จอร์แดน','Amman'], ['TLV','เทลอาวีฟ|อิสราเอล','Tel Aviv'], ['BEY','เบรุต','Beirut'],
+  ['THR','เตหะราน','Tehran'], ['CAI','ไคโร|อียิปต์','Cairo'],
+  ['LGW','แกตวิค','Gatwick'], ['MAN','แมนเชสเตอร์','Manchester'], ['EDI','เอดินบะระ','Edinburgh'], ['DUB','ดับลิน|ไอร์แลนด์','Dublin'],
+  ['BRU','บรัสเซลส์|เบลเยียม','Brussels'], ['GVA','เจนีวา','Geneva'], ['MXP','มิลาน','Milan'], ['VCE','เวนิส','Venice'], ['NAP','เนเปิลส์','Naples'],
+  ['LIS','ลิสบอน|โปรตุเกส','Lisbon'], ['ATH','เอเธนส์|กรีซ','Athens'], ['PRG','ปราก|เช็ก','Prague'], ['BUD','บูดาเปสต์|ฮังการี','Budapest'],
+  ['WAW','วอร์ซอ|โปแลนด์','Warsaw'], ['BER','เบอร์ลิน|เยอรมนี','Berlin'], ['HAM','ฮัมบูร์ก','Hamburg'], ['NCE','นีซ','Nice'],
+  ['SVO','มอสโก|รัสเซีย','Moscow'], ['LED','เซนต์ปีเตอร์สเบิร์ก','Saint Petersburg'], ['KBP','เคียฟ|ยูเครน','Kyiv'],
+  ['MIA','ไมอามี','Miami'], ['BOS','บอสตัน','Boston'], ['IAD','วอชิงตัน','Washington'], ['ATL','แอตแลนตา','Atlanta'], ['DFW','ดัลลัส','Dallas'],
+  ['LAS','ลาสเวกัส','Las Vegas'], ['HNL','โฮโนลูลู|ฮาวาย','Honolulu'], ['MEX','เม็กซิโกซิตี้|เม็กซิโก','Mexico City'], ['CUN','แคนคูน','Cancun'],
+  ['GRU','เซาเปาโล|บราซิล','Sao Paulo'], ['EZE','บัวโนสไอเรส|อาร์เจนตินา','Buenos Aires'], ['LIM','ลิมา|เปรู','Lima'], ['BOG','โบโกตา|โคลอมเบีย','Bogota'],
+  ['JNB','โจฮันเนสเบิร์ก|แอฟริกาใต้','Johannesburg'], ['CPT','เคปทาวน์','Cape Town'], ['NBO','ไนโรบี|เคนยา','Nairobi'], ['ADD','แอดดิสอบาบา|เอธิโอเปีย','Addis Ababa'],
+  ['BNE','บริสเบน','Brisbane'], ['CHC','ไครสต์เชิร์ช','Christchurch'],
+  ['TAS','ทาชเคนต์|อุซเบกิสถาน','Tashkent'], ['ALA','อัลมาตี|คาซัคสถาน','Almaty'], ['ULN','อูลานบาตอร์|มองโกเลีย','Ulaanbaatar'],
+  ['TBS','ทบิลิซี|จอร์เจีย','Tbilisi'], ['EVN','เยเรวาน|อาร์เมเนีย','Yerevan'], ['GYD','บากู|อาเซอร์ไบจาน','Baku']
+];
+// หาสนามบินจากข้อความ: ชื่อไทย / ชื่ออังกฤษ / รหัส IATA 3 ตัว (เลือกคำที่ยาวที่สุดที่ตรง)
+function resolveAirport(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  let best = null;
+  for (const [code, th, en] of AIRPORT_LIST) {
+    const names = [...th.split('|'), en];
+    for (const n of names) {
+      if (t.includes(n.toLowerCase()) && (!best || n.length > best.len)) best = { code, name: th.split('|')[0], len: n.length };
+    }
+    if (new RegExp('(^|[^A-Za-z])' + code + '([^A-Za-z]|$)', 'i').test(text) && (!best || 3 > best.len)) best = { code, name: th.split('|')[0], len: 3 };
+  }
+  const raw = text.trim();
+  if (!best && /^[A-Za-z]{3}$/.test(raw)) best = { code: raw.toUpperCase(), name: raw.toUpperCase(), len: 3 };  // รหัสสนามบินอะไรก็ได้
+  return best;
+}
+const MONTHS = ["มกรา","กุมภา","มีนา","เมษา","พฤษภา","มิถุนา","กรกฎา","สิงหา","กันยา","ตุลา","พฤศจิกา","ธันวา"];
+
+let flights = [], selected = null, method = 'card', booking = null;
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('en-US');
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Stepper / views ---------- */
+function setStep(n) {
+  for (let i = 1; i <= 5; i++) {
+    $('s' + i).className = 'p-2.5 rounded-xl transition ' +
+      (i < n ? 'bg-emerald-600 text-white' : i === n ? 'bg-sky-500 text-white shadow-sm' : 'bg-slate-100 text-slate-400');
+  }
+}
+function showView(v) {
+  ['chat-view','pay-view','done-view'].forEach(id => $(id).classList.add('hidden'));
+  $(v).classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ---------- Chat ---------- */
+function addMsg(role, html) {
+  const mine = role === 'user';
+  const row = document.createElement('div');
+  row.className = 'msg-in flex ' + (mine ? 'justify-end' : 'justify-start');
+  row.innerHTML = mine
+    ? `<div class="max-w-[85%] bg-sky-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm shadow-sm"></div>`
+    : `<div class="max-w-[95%] bg-white border border-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-sm text-slate-700 shadow-sm"></div>`;
+  const bubble = row.firstChild;
+  if (mine) bubble.textContent = html; else bubble.innerHTML = html;
+  $('chat-log').appendChild(row);
+  $('chat-log').scrollTop = $('chat-log').scrollHeight;
+  return bubble;
+}
+
+async function sendMessage(text) {
+  text = (text ?? $('chat-input').value).trim();
+  if (!text) return;
+  $('chat-input').value = '';
+  addMsg('user', text);
+  setStep(2);
+  await ensureAirport(text);
+  const info = parseRequest(text);
+  if (!info.code) {
+    addMsg('bot', 'ยังไม่รู้จักจุดหมายนี้ค่ะ ลองพิมพ์ชื่อเมืองเป็นภาษาอังกฤษ (เช่น Urumqi) หรือรหัสสนามบิน 3 ตัวอักษร (เช่น URC, HDY, NRT) หรือเลือกจากช่อง "จุดหมาย"' +
+      (lastSearchError ? ' <span class="text-xs text-slate-400">[ค้นหาผ่าน server: ' + esc(lastSearchError) + ']</span>' : ''));
+    setStep(1); return;
+  }
+  if (info.code === ORIGIN) { addMsg('bot', 'จุดหมายต้องไม่ใช่สนามบินต้นทาง (BKK) ลองเลือกจุดหมายอื่นนะคะ'); setStep(1); return; }
+  const typing = addMsg('bot', '<span class="text-slate-400">กำลังดึงราคาเที่ยวบินล่าสุด...</span>');
+  try {
+    flights = await fetchFlights(info);
+    typing.parentElement.remove();
+    if (!flights.length) { addMsg('bot', 'ไม่พบเที่ยวบินตามเงื่อนไข ลองเปลี่ยนวันที่ หรือเอา "บินตรง" ออกดูนะคะ'); return; }
+    const bubble = addMsg('bot',
+      `พบ <b>${flights.length}</b> เที่ยวบินไป <b>${esc(info.destination)}</b> (${info.date}) · ${info.budgetText} · ${info.bagText}
+       <div class="flex items-center gap-1 mt-3 text-xs">
+         <span class="text-slate-400 mr-1">เรียงตาม:</span>
+         <button data-sort="price" class="sortbtn px-3 py-1.5 rounded-lg font-bold">💰 ราคา</button>
+         <button data-sort="time" class="sortbtn px-3 py-1.5 rounded-lg font-bold">⏰ เวลาออก</button>
+       </div>
+       <div class="results space-y-3 mt-3"></div>
+       <p class="text-xs text-slate-400 mt-3">ราคาจากข้อมูลล่าสุด อาจเปลี่ยนแปลงได้ · อยากปรับเงื่อนไข พิมพ์ข้อความใหม่ในแชทได้เลยค่ะ</p>`);
+    const set = flights;
+    bubble.querySelectorAll('.sortbtn').forEach(b => b.onclick = () => renderResults(bubble, set, b.dataset.sort));
+    renderResults(bubble, set, 'price');
+  } catch (e) {
+    typing.parentElement.remove();
+    addMsg('bot', 'ดึงข้อมูลเที่ยวบินไม่สำเร็จ ลองใหม่อีกครั้งค่ะ <span class="text-xs text-slate-400">(' + esc(e.message) + ')</span>');
+    setStep(1);
+  }
+}
+
+/* ---------- Rule-based request parsing ---------- */
+function parseRequest(prompt) {
+  const ap = resolveAirport(prompt) || forcedAirport || resolveAirport($('dest').value);
+  const destination = ap ? ap.name : null, code = ap ? ap.code : null;
+  if (ap && !forcedAirport) $('dest').value = `${ap.name} (${ap.code})`;
+  updateDestBadge();
+
+  let date = $('dep-date').value;
+  const mi = MONTHS.findIndex(x => prompt.includes(x));
+  if (mi >= 0) {
+    const now = new Date(); let y = now.getFullYear();
+    if (new Date(y, mi, 15) <= now) y++;
+    date = `${y}-${String(mi + 1).padStart(2, '0')}-15`;
+    $('dep-date').value = date;
+  }
+  const nums = [...prompt.replace(/,/g, '').matchAll(/\d+/g)].map(m => parseInt(m[0])).filter(n => n >= 500);
+  const budget = nums.length ? Math.max(...nums) : null;
+  return {
+    destination, code, date, budget, direct: prompt.includes('บินตรง'),
+    budgetText: budget ? `งบไม่เกิน ฿${fmt(budget)}` : 'ไม่ระบุงบ',
+    bagText: prompt.includes('กระเป๋า') ? 'เช็คสัมภาระกับสายการบินก่อนจอง' : 'ราคาต่อที่นั่ง'
+  };
+}
+
+/* ---------- Real-time flights via our server (/api/flights) ---------- */
+async function fetchFlights(info) {
+  const q = new URLSearchParams({ from: ORIGIN, to: info.code, date: info.date });
+  const res = await fetch('/api/flights?' + q);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+  let list = (data.flights || []).map(f => ({
+    ...f, route: `${ORIGIN} ➔ ${info.destination} (${info.code})`,
+    over: info.budget ? f.price > info.budget : false
+  }));
+  if (info.direct) list = list.filter(f => f.stops === 0);
+  return list;
+}
+
+function renderResults(bubble, set, sortBy) {
+  const list = [...set].sort(sortBy === 'time' ? (a, b) => a.dep.localeCompare(b.dep) : (a, b) => a.price - b.price);
+  const cheapest = Math.min(...list.map(f => f.price));
+  bubble.querySelectorAll('.sortbtn').forEach(b =>
+    b.className = 'sortbtn px-3 py-1.5 rounded-lg font-bold ' + (b.dataset.sort === sortBy ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'));
+  const box = bubble.querySelector('.results');
+  box.innerHTML = '';
+  list.forEach(f => {
+    const tags = [
+      f.price === cheapest ? '<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">ราคาถูกที่สุด</span>' : '',
+      `<span class="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">${f.stops === 0 ? 'บินตรง' : f.stops + ' จุดแวะ'}${f.duration ? ' · ' + Math.floor(f.duration/60) + ' ชม. ' + (f.duration%60) + ' นาที' : ''}</span>`,
+      f.over ? '<span class="bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full">เกินงบ</span>' : ''
+    ].join(' ');
+    const el = document.createElement('div');
+    el.className = 'border border-slate-200 rounded-2xl p-4 hover:shadow-md transition bg-white';
+    el.innerHTML = `
+      <div class="flex flex-wrap gap-1.5 text-[10px] font-bold mb-2">${tags}</div>
+      <div class="flex justify-between items-center gap-4">
+        <div>
+          <p class="font-bold text-slate-900">${f.airline} <span class="text-xs text-slate-400 font-normal">(${f.code})</span></p>
+          <p class="text-xs text-slate-500">${esc(f.route)}</p>
+          <p class="text-sm font-bold mt-1">${f.dep} - ${f.arr} น.</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xl font-black text-sky-600">฿${fmt(f.price)}</p>
+          <button class="pick mt-2 bg-slate-900 hover:bg-sky-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition">เลือกเที่ยวบินนี้</button>
+        </div>
+      </div>`;
+    el.querySelector('.pick').onclick = () => openConfirm(f);
+    box.appendChild(el);
+  });
+  $('chat-log').scrollTop = $('chat-log').scrollHeight;
+}
+
+/* ---------- Confirm modal ---------- */
+const rows = (f, total = 'ราคารวม:') => `
+  <div class="flex justify-between"><span>เที่ยวบิน:</span><strong>${f.airline} (${f.code})</strong></div>
+  <div class="flex justify-between"><span>เส้นทาง:</span><strong>${esc(f.route)}</strong></div>
+  <div class="flex justify-between"><span>เวลา:</span><strong>${f.dep} - ${f.arr} น.</strong></div>
+  <div class="flex justify-between"><span>ค่าธรรมเนียมแอบแฝง:</span><strong class="text-emerald-600">฿0</strong></div>
+  <div class="flex justify-between border-t border-slate-200 pt-2 text-sm"><span>${total}</span><strong class="text-sky-600 text-base">฿${fmt(f.price)}</strong></div>`;
+
+function openConfirm(f) {
+  selected = f; setStep(3);
+  $('confirm-summary').innerHTML = rows(f);
+  $('confirm-modal').classList.remove('hidden');
+}
+function closeConfirm() { $('confirm-modal').classList.add('hidden'); setStep(2); }
+
+/* ---------- Payment page ---------- */
+function goPayment() {
+  $('confirm-modal').classList.add('hidden');
+  $('order-summary').innerHTML = rows(selected);
+  document.querySelectorAll('.pay-total').forEach(e => e.textContent = fmt(selected.price));
+  $('pay-error').classList.add('hidden');
+  drawQR(); setMethod('card'); setStep(4); showView('pay-view');
+}
+function setMethod(m) {
+  method = m;
+  document.querySelectorAll('.method').forEach(b =>
+    b.className = 'method p-3 rounded-xl border-2 ' + (b.dataset.m === m ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'));
+  document.querySelectorAll('.method-panel').forEach(p => p.classList.add('hidden'));
+  $('m-' + m).classList.remove('hidden');
+}
+function drawQR() {  // QR สาธิต (ไม่ใช่ QR จริง)
+  const n = 21, q = $('qr'); q.innerHTML = '';
+  const corners = [[0,0],[n-7,0],[0,n-7]];
+  const finder = (x, y) => corners.some(([fx, fy]) => x >= fx && x < fx+7 && y >= fy && y < fy+7 &&
+    (x === fx || x === fx+6 || y === fy || y === fy+6 || (x >= fx+2 && x <= fx+4 && y >= fy+2 && y <= fy+4)));
+  const blank = (x, y) => corners.some(([fx, fy]) => x >= fx-1 && x <= fx+7 && y >= fy-1 && y <= fy+7);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const on = finder(x, y) || (!blank(x, y) && Math.random() > 0.5);
+    q.insertAdjacentHTML('beforeend', `<i style="background:${on ? '#0f172a' : '#fff'}"></i>`);
+  }
+}
+function showErr(msg) { const e = $('pay-error'); e.textContent = msg; e.classList.remove('hidden'); }
+
+function validate() {
+  if (!$('p-name').value.trim()) return 'กรุณากรอกชื่อ-นามสกุลผู้จอง';
+  if (!/^\S+@\S+\.\S+$/.test($('p-email').value.trim())) return 'รูปแบบอีเมลไม่ถูกต้อง';
+  if (!/^[0-9\-\s+]{9,15}$/.test($('p-phone').value.trim())) return 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง';
+  if (method === 'card') {
+    if (!/^\d{15,16}$/.test($('c-num').value.replace(/\s/g, ''))) return 'หมายเลขบัตรต้องมี 15-16 หลัก';
+    if (!$('c-holder').value.trim()) return 'กรุณากรอกชื่อบนบัตร';
+    const m = $('c-exp').value.match(/^(\d{2})\/(\d{2})$/);
+    if (!m || +m[1] < 1 || +m[1] > 12) return 'วันหมดอายุไม่ถูกต้อง (MM/YY)';
+    const now = new Date(), y = 2000 + +m[2];
+    if (y < now.getFullYear() || (y === now.getFullYear() && +m[1] < now.getMonth() + 1)) return 'บัตรหมดอายุแล้ว';
+    if (!/^\d{3,4}$/.test($('c-cvv').value)) return 'CVV ต้องมี 3-4 หลัก';
+  }
+  if (method === 'bank' && !$('b-bank').value) return 'กรุณาเลือกธนาคาร';
+  return '';
+}
+
+function pay() {
+  const err = validate();
+  if (err) return showErr(err);
+  $('pay-error').classList.add('hidden');
+  const btn = $('pay-btn'); btn.disabled = true; btn.classList.add('opacity-60');
+  btn.textContent = 'กำลังดำเนินการชำระเงิน...';
+  setTimeout(() => {
+    const names = { card: 'บัตรเครดิต/เดบิต', qr: 'พร้อมเพย์ QR', bank: 'โมบายแบงก์กิ้ง' };
+    booking = { ref: 'SF' + Math.random().toString(36).slice(2, 8).toUpperCase(), method: names[method] };
+    $('done-ref').textContent = booking.ref;
+    $('done-email').textContent = $('p-email').value.trim();
+    $('done-summary').innerHTML =
+      `<div class="flex justify-between"><span>ผู้โดยสาร:</span><strong>${esc($('p-name').value.trim())}</strong></div>` +
+      rows(selected, 'ชำระแล้ว:') +
+      `<div class="flex justify-between"><span>วิธีชำระเงิน:</span><strong>${booking.method}</strong></div>`;
+    btn.disabled = false; btn.classList.remove('opacity-60');
+    btn.innerHTML = 'ชำระเงิน ฿<span class="pay-total">' + fmt(selected.price) + '</span>';
+    setStep(5); showView('done-view');
+  }, 1400);
+}
+
+/* ---------- Reset ---------- */
+function greet() {
+  addMsg('bot', 'สวัสดีค่ะ 👋 ยินดีต้อนรับสู่ SkyFlow<br>พิมพ์จุดหมาย ช่วงเวลา และงบประมาณได้เลย เช่น <i>"ไปโตเกียว ธันวา บินตรง รวมกระเป๋า งบ 18,000"</i>');
+}
+function resetAll() {
+  selected = null; flights = [];
+  document.querySelectorAll('#pay-view input, #pay-view select').forEach(i => i.value = '');
+  $('chat-log').innerHTML = '';
+  greet(); setStep(1); showView('chat-view');
+}
+
+/* ---------- ค้นหาสนามบินทั้งหมดผ่าน server (/api/airports) ---------- */
+let suggestCount = 0, lastSearchError = '', forcedAirport = null;
+async function searchAirports(q) {
+  lastSearchError = '';
+  try {
+    const res = await fetch('/api/airports?q=' + encodeURIComponent(q));
+    const data = await res.json().catch(() => { throw new Error('server ไม่ได้ตอบเป็น JSON (ยังไม่ได้เพิ่ม route /api/airports?)'); });
+    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    const list = data.airports || [];
+    const dl = $('airport-list');
+    dl.querySelectorAll('.dyn').forEach(o => o.remove());
+    list.forEach(a => {
+      if (!AIRPORT_LIST.some(x => x[0] === a.code && x[2] === a.name)) AIRPORT_LIST.push([a.code, '', a.name]);
+      dl.insertAdjacentHTML('beforeend', `<option class="dyn" value="${esc(a.name)} (${a.code})"></option>`);
+    });
+    suggestCount = list.length;
+    if (!list.length) lastSearchError = 'API ไม่พบสนามบินชื่อนี้';
+    return list;
+  } catch (e) { suggestCount = 0; lastSearchError = e.message; return []; }
+}
+// ถ้าชื่อที่พิมพ์ไม่อยู่ในตารางในเครื่อง ให้ถาม server (ใช้ได้กับชื่อ/รหัสภาษาอังกฤษ)
+async function ensureAirport(text) {
+  forcedAirport = null; lastSearchError = '';
+  if (resolveAirport(text)) return;                       // เจอในตารางไทยแล้ว
+  const latin = (text.match(/[A-Za-z][A-Za-z .'-]{2,}/g) || []).map(x => x.trim());
+  const q = latin[0];
+  if (!q) return;                                         // ไม่มีชื่ออังกฤษ ใช้ค่าในช่องจุดหมายตามเดิม
+  const list = await searchAirports(q);
+  if (list.length) {
+    const ql = q.toLowerCase();
+    const best = list.find(a => a.name.toLowerCase().includes(ql)) || list[0];
+    forcedAirport = { code: best.code, name: best.name };
+    $('dest').value = `${best.name} (${best.code})`;
+  }
+}
+let destTimer;
+function onDestInput() {
+  updateDestBadge();
+  clearTimeout(destTimer);
+  const v = $('dest').value.trim();
+  if (v.length < 3 || resolveAirport(v)) return;
+  destTimer = setTimeout(async () => { await searchAirports(v); updateDestBadge(); }, 400);
+}
+
+function updateDestBadge() {
+  const v = $('dest').value.trim(), ap = resolveAirport(v), el = $('dest-code');
+  if (!v) { el.textContent = '---'; el.className = 'px-3 py-1.5 rounded-lg font-mono font-bold bg-slate-100 text-slate-400'; return; }
+  const pick = !ap && suggestCount > 0;
+  el.textContent = ap ? ap.code : pick ? 'เลือกจากรายการ ▾' : 'ไม่พบ';
+  el.className = 'px-3 py-1.5 rounded-lg font-mono font-bold ' + (ap ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : pick ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-rose-100 text-rose-600 border border-rose-200');
+}
+
+/* ---------- Events ---------- */
+$('send-btn').onclick = () => sendMessage();
+$('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+document.querySelectorAll('.chip').forEach(c => c.onclick = () => sendMessage(c.textContent));
+$('modal-close').onclick = closeConfirm;
+$('to-pay').onclick = goPayment;
+$('back-btn').onclick = () => { setStep(2); showView('chat-view'); };
+document.querySelectorAll('.method').forEach(b => b.onclick = () => setMethod(b.dataset.m));
+$('pay-btn').onclick = pay;
+$('home-btn').onclick = resetAll;
+$('c-num').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim());
+$('c-exp').addEventListener('input', e => { let v = e.target.value.replace(/\D/g, '').slice(0, 4); if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); e.target.value = v; });
+
+{ const d = new Date(); const min = d.toISOString().slice(0,10); d.setDate(d.getDate() + 30);
+  $('dep-date').min = min; $('dep-date').value = d.toISOString().slice(0,10); }
+AIRPORT_LIST.forEach(([c, th, en]) => $('airport-list').insertAdjacentHTML('beforeend', `<option value="${th.split('|')[0]} (${c})">${en}</option>`));
+$('dest').addEventListener('input', onDestInput);
+greet(); setStep(1);
+</script>
+</body>
+</html>
