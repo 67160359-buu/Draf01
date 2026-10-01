@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=skyflowpass
+      - DB_NAME=skyflow_db
+      - JWT_SECRET=skyflow_secret_key_2024
+      - FLIGHTAPI_KEY=6abe10cfe1ceafff6e5b16d3
+    depends_on:
+      - postgres
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: skyflowpass
+      POSTGRES_DB: skyflow_db
+    # ลบส่วน ports: - "5433:5432" ออกไปได้เลย ไม่ต้องมี
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
