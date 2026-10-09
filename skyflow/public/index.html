@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyFlow – จองตั๋วเครื่องบิน</title>
+<style>
+  :root {
+    --bg: #f3f6fb; --card: #fff; --ink: #14213d; --muted: #667085;
+    --brand: #1d6fe8; --brand-d: #1556b8; --ok: #12a150; --err: #d92d20; --line: #e4e9f2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { background: linear-gradient(135deg, #0b3d91, #1d6fe8); color: #fff; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 12px; flex-wrap: wrap; }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: .3px; }
+  .nav-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .hero { padding: 18px 0 70px; }
+  .hero h1 { margin: 0 0 4px; font-size: 28px; }
+  .hero p { margin: 0; opacity: .85; }
+  main { margin-top: -50px; padding-bottom: 48px; }
+  .card { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: 0 6px 24px rgba(20,33,61,.08); margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: #fff; }
+  input:focus, select:focus { outline: 2px solid #bcd6ff; border-color: var(--brand); }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 10px 18px; background: var(--brand); color: #fff; font-weight: 600; }
+  button:hover { background: var(--brand-d); }
+  button.ghost { background: transparent; border: 1px solid rgba(255,255,255,.6); color: #fff; }
+  button.ghost:hover { background: rgba(255,255,255,.15); }
+  button.light { background: #eef3fc; color: var(--brand); }
+  button.light:hover { background: #dfe9fb; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .flight { display: grid; grid-template-columns: 1.3fr 1.6fr auto; gap: 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+  .flight:first-child { border-top: 0; }
+  .airline { font-weight: 700; } .code { color: var(--muted); font-size: 13px; }
+  .times { font-size: 18px; font-weight: 600; } .dur { font-size: 12px; color: var(--muted); }
+  .price { font-size: 20px; font-weight: 700; color: var(--brand); text-align: right; margin-bottom: 6px; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef3fc; color: var(--brand); }
+  .badge.demo { background: #fff4e5; color: #b54708; }
+  .status { padding: 10px 14px; border-radius: 10px; margin: 10px 0; font-size: 14px; }
+  .status.err { background: #fef3f2; color: var(--err); } .status.ok { background: #ecfdf3; color: var(--ok); }
+  .hidden { display: none !important; }
+  .modal { position: fixed; inset: 0; background: rgba(10,20,40,.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .modal .box { background: #fff; border-radius: 16px; padding: 22px; width: 100%; max-width: 440px; max-height: 92vh; overflow: auto; }
+  .modal h2 { margin: 0 0 12px; }
+  .field { margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .hint { font-size: 12px; margin-top: 3px; } .hint.ok { color: var(--ok); } .hint.err { color: var(--err); }
+  @media (max-width: 640px) { .flight { grid-template-columns: 1fr; } .price { text-align: left; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <div class="logo">✈ SkyFlow</div>
+      <div class="nav-actions" id="navActions"></div>
+    </nav>
+    <div class="hero">
+      <h1>ค้นหาและจองเที่ยวบินในไม่กี่คลิก</h1>
+      <p>เปรียบเทียบราคา เลือกเที่ยวบิน แล้วจองได้ทันที</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <form id="searchForm">
+      <div class="grid">
+        <div><label for="from">ต้นทาง</label><select id="from"></select></div>
+        <div><label for="to">ปลายทาง</label><select id="to"></select></div>
+        <div><label for="date">วันเดินทาง</label><input type="date" id="date" required></div>
+        <div><label for="adults">ผู้โดยสาร</label><select id="adults"></select></div>
+        <div><button type="submit" id="searchBtn" style="width:100%">ค้นหาเที่ยวบิน</button></div>
+      </div>
+    </form>
+  </section>
+
+  <section class="card hidden" id="resultsCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <strong id="resultsTitle">ผลการค้นหา</strong>
+      <span id="sourceBadge" class="badge"></span>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <section class="card hidden" id="bookingsCard">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>การจองของฉัน</strong>
+      <button class="light" id="refreshBookings">รีเฟรช</button>
+    </div>
+    <div id="bookingsBody" style="overflow:auto"></div>
+  </section>
+</main>
+
+<!-- Auth modal -->
+<div class="modal hidden" id="authModal">
+  <div class="box">
+    <h2 id="authTitle">เข้าสู่ระบบ</h2>
+    <form id="authForm">
+      <div class="field" id="nameField"><label>ชื่อ-นามสกุล</label><input id="aName" autocomplete="name"></div>
+      <div class="field" id="usernameField"><label>Username</label><input id="aUsername" autocomplete="username"><div class="hint" id="unameHint"></div></div>
+      <div class="field"><label id="aEmailLabel">Email</label><input id="aEmail" type="text" autocomplete="email"><div class="hint" id="emailHint"></div></div>
+      <div class="field"><label>Password</label><input id="aPassword" type="password" autocomplete="current-password"></div>
+      <div id="authStatus"></div>
+      <div class="row">
+        <button type="button" class="light" id="authSwitch">สมัครสมาชิก</button>
+        <button type="button" class="light" id="authCancel">ปิด</button>
+        <button type="submit" id="authSubmit">เข้าสู่ระบบ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Booking modal -->
+<div class="modal hidden" id="bookModal">
+  <div class="box">
+    <h2>ยืนยันการจอง</h2>
+    <div id="bookSummary" style="margin-bottom:12px"></div>
+    <form id="bookForm">
+      <div class="field"><label>ชื่อผู้โดยสาร</label><input id="pName" required></div>
+      <div class="field"><label>Email</label><input id="pEmail" type="email" required></div>
+      <div class="field"><label>เบอร์โทร</label><input id="pPhone" type="tel"></div>
+      <div class="field"><label>วิธีชำระเงิน</label>
+        <select id="pPay">
+          <option>บัตรเครดิต/เดบิต</option>
+          <option>PromptPay</option>
+          <option>โอนผ่านธนาคาร</option>
+        </select>
+      </div>
+      <div id="bookStatus"></div>
+      <div class="row">
+        <button type="button" class="light" id="bookCancel">ยกเลิก</button>
+        <button type="submit" id="bookSubmit">ยืนยันจอง</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get token() { try { return localStorage.getItem('sf_token'); } catch { return null; } },
+  get user() { try { return JSON.parse(localStorage.getItem('sf_user') || 'null'); } catch { return null; } },
+  set(token, user) { try { localStorage.setItem('sf_token', token); localStorage.setItem('sf_user', JSON.stringify(user)); } catch {} },
+  clear() { try { localStorage.removeItem('sf_token'); localStorage.removeItem('sf_user'); } catch {} },
+};
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (store.token) headers.Authorization = 'Bearer ' + store.token;
+  const res = await fetch(path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (!res.ok) {
+    if (res.status === 403 && path.includes('my-bookings')) { store.clear(); renderNav(); }
+    throw new Error(data.message || data.error || `เกิดข้อผิดพลาด (${res.status})`);
+  }
+  return data;
+}
+
+const fmtMoney = (n) => Number(n).toLocaleString('th-TH');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDur = (m) => (m ? `${Math.floor(m / 60)} ชม. ${m % 60} นาที` : '');
+
+/* ---------- Nav / session ---------- */
+function renderNav() {
+  const u = store.user;
+  const el = $('navActions');
+  if (u && store.token) {
+    el.innerHTML = `<span>สวัสดี, ${esc(u.name || u.username)}</span>
+      <button class="ghost" id="btnMine">การจองของฉัน</button>
+      <button class="ghost" id="btnLogout">ออกจากระบบ</button>`;
+    $('btnMine').onclick = () => { $('bookingsCard').classList.remove('hidden'); loadBookings(); $('bookingsCard').scrollIntoView({ behavior: 'smooth' }); };
+    $('btnLogout').onclick = () => { store.clear(); renderNav(); $('bookingsCard').classList.add('hidden'); };
+  } else {
+    el.innerHTML = `<button class="ghost" id="btnLogin">เข้าสู่ระบบ</button><button class="ghost" id="btnReg">สมัครสมาชิก</button>`;
+    $('btnLogin').onclick = () => openAuth('login');
+    $('btnReg').onclick = () => openAuth('register');
+  }
+}
+
+/* ---------- Auth ---------- */
+let authMode = 'login';
+function openAuth(mode) {
+  authMode = mode;
+  const reg = mode === 'register';
+  $('authTitle').textContent = reg ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+  $('authSubmit').textContent = reg ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+  $('authSwitch').textContent = reg ? 'มีบัญชีแล้ว' : 'สมัครสมาชิก';
+  $('nameField').classList.toggle('hidden', !reg);
+  $('usernameField').classList.toggle('hidden', !reg);
+  $('aEmailLabel').textContent = reg ? 'Email' : 'Email หรือ Username';
+  $('aPassword').autocomplete = reg ? 'new-password' : 'current-password';
+  $('authStatus').innerHTML = ''; $('unameHint').textContent = ''; $('emailHint').textContent = '';
+  $('authModal').classList.remove('hidden');
+}
+$('authCancel').onclick = () => $('authModal').classList.add('hidden');
+$('authSwitch').onclick = () => openAuth(authMode === 'login' ? 'register' : 'login');
+
+function liveCheck(inputId, hintId, urlFn, label) {
+  let t;
+  $(inputId).addEventListener('input', () => {
+    if (authMode !== 'register') return;
+    clearTimeout(t);
+    const v = $(inputId).value.trim();
+    const hint = $(hintId);
+    if (!v) { hint.textContent = ''; return; }
+    t = setTimeout(async () => {
+      try {
+        const r = await api(urlFn(v));
+        hint.textContent = r.available ? `✓ ${label}ใช้ได้` : `✗ ${label}นี้ถูกใช้แล้ว`;
+        hint.className = 'hint ' + (r.available ? 'ok' : 'err');
+      } catch { hint.textContent = ''; }
+    }, 350);
+  });
+}
+liveCheck('aUsername', 'unameHint', (v) => '/api/auth/check-username/' + encodeURIComponent(v), 'Username ');
+liveCheck('aEmail', 'emailHint', (v) => '/api/auth/check-email/' + encodeURIComponent(v), 'Email ');
+
+$('authForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const status = $('authStatus');
+  status.innerHTML = '';
+  const email = $('aEmail').value.trim(), password = $('aPassword').value;
+  $('authSubmit').disabled = true;
+  try {
+    if (authMode === 'register') {
+      await api('/api/auth/register', { method: 'POST', body: { name: $('aName').value.trim(), username: $('aUsername').value.trim(), email, password } });
+    }
+    const data = await api('/api/auth/login', { method: 'POST', body: { email, password } });
+    store.set(data.token, data.user);
+    $('authModal').classList.add('hidden');
+    $('authForm').reset();
+    renderNav();
+    if (pendingFlight) openBooking(pendingFlight);
+  } catch (err) {
+    status.innerHTML = `<div class="status err">${esc(err.message)}</div>`;
+  } finally { $('authSubmit').disabled = false; }
+};
+
+/* ---------- Search ---------- */
+let airports = [];
+let lastFlights = [];
+async function initSearch() {
+  try { airports = (await api('/api/airports')).airports; } catch { airports = [{ code: 'BKK', name: 'กรุงเทพฯ' }, { code: 'CNX', name: 'เชียงใหม่' }, { code: 'HKT', name: 'ภูเก็ต' }]; }
+  const opts = airports.map((a) => `<option value="${a.code}">${esc(a.name)} (${a.code})</option>`).join('');
+  $('from').innerHTML = opts; $('to').innerHTML = opts;
+  $('from').value = 'BKK'; $('to').value = airports.find((a) => a.code === 'CNX') ? 'CNX' : airports[1].code;
+  $('adults').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}">${n} คน</option>`).join('');
+  const d = new Date(); d.setDate(d.getDate() + 7);
+  $('date').value = d.toISOString().slice(0, 10);
+  $('date').min = new Date().toISOString().slice(0, 10);
+}
+
+$('searchForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const q = new URLSearchParams({ from: $('from').value, to: $('to').value, date: $('date').value, adults: $('adults').value });
+  const btn = $('searchBtn'); btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
+  $('resultsCard').classList.remove('hidden');
+  $('results').innerHTML = '<p>กำลังค้นหาเที่ยวบิน...</p>';
+  try {
+    const data = await api('/api/flights?' + q);
+    lastFlights = data.flights.map((f) => ({ ...f, adults: Number($('adults').value) }));
+    $('resultsTitle').textContent = `${$('from').value} → ${$('to').value} · ${data.count} เที่ยวบิน`;
+    const badge = $('sourceBadge');
+    badge.textContent = data.source === 'live' ? 'ราคาจริง' : 'ข้อมูลตัวอย่าง';
+    badge.className = 'badge ' + (data.source === 'live' ? '' : 'demo');
+    $('results').innerHTML = lastFlights.length ? lastFlights.map((f, i) => `
+      <div class="flight">
+        <div><div class="airline">${esc(f.airline)}</div><div class="code">${esc(f.flightCode)}</div></div>
+        <div><div class="times">${esc(f.depTime)} → ${esc(f.arrTime)}</div><div class="dur">${fmtDur(f.durationMinutes)}${f.stops ? ` · แวะ ${f.stops} ครั้ง` : ' · บินตรง'}</div></div>
+        <div><div class="price">฿${fmtMoney(f.price)}</div><button data-i="${i}" class="book">จอง</button></div>
+      </div>`).join('') : '<p>ไม่พบเที่ยวบิน</p>';
+    document.querySelectorAll('button.book').forEach((b) => b.onclick = () => startBooking(lastFlights[b.dataset.i]));
+  } catch (err) {
+    $('results').innerHTML = `<div class="status err">${esc(err.message)}</div>`;
+  } finally { btn.disabled = false; btn.textContent = 'ค้นหาเที่ยวบิน'; }
+};
+
+/* ---------- Booking ---------- */
+let pendingFlight = null;
+function startBooking(f) {
+  pendingFlight = f;
+  if (!store.token) { openAuth('login'); $('authStatus').innerHTML = '<div class="status ok">เข้าสู่ระบบเพื่อจอง หรือปิดหน้านี้แล้วจองแบบผู้เยี่ยมชมก็ได้</div>'; $('authCancel').onclick = () => { $('authModal').classList.add('hidden'); openBooking(f); $('authCancel').onclick = () => $('authModal').classList.add('hidden'); }; return; }
+  openBooking(f);
+}
+function openBooking(f) {
+  pendingFlight = f;
+  const total = f.price * (f.adults || 1);
+  $('bookSummary').innerHTML = `<div class="card" style="box-shadow:none;border:1px solid var(--line);margin:0;padding:12px">
+    <strong>${esc(f.airline)}</strong> <span class="code">${esc(f.flightCode)}</span><br>
+    ${esc(f.route)} · ${esc(f.depTime)} → ${esc(f.arrTime)}<br>
+    ${f.adults || 1} ผู้โดยสาร × ฿${fmtMoney(f.price)} = <strong>฿${fmtMoney(total)}</strong></div>`;
+  const u = store.user;
+  if (u) { $('pName').value = u.name || ''; $('pEmail').value = u.email || ''; }
+  $('bookStatus').innerHTML = '';
+  $('bookModal').classList.remove('hidden');
+}
+$('bookCancel').onclick = () => { $('bookModal').classList.add('hidden'); pendingFlight = null; };
+
+$('bookForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const f = pendingFlight; if (!f) return;
+  $('bookSubmit').disabled = true;
+  try {
+    const data = await api('/api/bookings', { method: 'POST', body: {
+      passengerName: $('pName').value.trim(), passengerEmail: $('pEmail').value.trim(), passengerPhone: $('pPhone').value.trim(),
+      airline: f.airline, flightCode: f.flightCode, route: f.route, depTime: f.depTime, arrTime: f.arrTime,
+      totalPrice: f.price * (f.adults || 1), paymentMethod: $('pPay').value,
+    } });
+    $('bookStatus').innerHTML = `<div class="status ok">${esc(data.message)} — รหัสการจอง <strong>${esc(data.booking.booking_ref)}</strong></div>`;
+    pendingFlight = null;
+    if (store.token) { $('bookingsCard').classList.remove('hidden'); loadBookings(); }
+    setTimeout(() => $('bookModal').classList.add('hidden'), 2500);
+  } catch (err) {
+    $('bookStatus').innerHTML = `<div class="status err">${esc(err.message)}</div>`;
+  } finally { $('bookSubmit').disabled = false; }
+};
+
+async function loadBookings() {
+  const body = $('bookingsBody');
+  body.innerHTML = '<p>กำลังโหลด...</p>';
+  try {
+    const { bookings } = await api('/api/my-bookings');
+    body.innerHTML = bookings.length ? `<table><thead><tr><th>รหัส</th><th>เที่ยวบิน</th><th>เส้นทาง</th><th>เวลา</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>` +
+      bookings.map((b) => `<tr><td>${esc(b.booking_ref)}</td><td>${esc(b.airline)} ${esc(b.flight_code)}</td><td>${esc(b.route)}</td><td>${esc(b.dep_time)}–${esc(b.arr_time)}</td><td>฿${fmtMoney(b.total_price)}</td><td>${esc(b.status)}</td></tr>`).join('') + '</tbody></table>'
+      : '<p>ยังไม่มีการจอง</p>';
+  } catch (err) {
+    body.innerHTML = `<div class="status err">${esc(err.message)}</div>`;
+  }
+}
+$('refreshBookings').onclick = loadBookings;
+
+renderNav();
+initSearch();
+if (store.token) { $('bookingsCard').classList.remove('hidden'); loadBookings(); }
+</script>
+</body>
+</html>
